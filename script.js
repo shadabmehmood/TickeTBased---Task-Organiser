@@ -16,13 +16,22 @@ let unlockClass = "fa-lock-open";
 
 let ticketArr = [];
 
+if(localStorage.getItem("task_tickets")){
+    ticketArr = JSON.parse(localStorage.getItem("task_tickets"));
+    ticketArr.forEach((ticketObj) => {
+        createTicket(ticketObj.ticketColor,ticketObj.ticketTask,ticketObj.ticketId);
+    })
+    
+}
+
 for(let i=0;i<toolboxBoxColors.length;i++){
     toolboxBoxColors[i].addEventListener("click", (e) => {
-        let currentToolBoxColor = toolboxBoxColors[i].classList[0];
+        let currentToolBoxColor = toolboxBoxColors[i].classList[1];
 
         let filteredTickets = ticketArr.filter((ticketObj, idx) => {
             return currentToolBoxColor === ticketObj.ticketColor;
         })
+        console.log(filteredTickets);
 
         let allTicketsCont = document.querySelectorAll('.ticket-cont');
 
@@ -35,9 +44,9 @@ for(let i=0;i<toolboxBoxColors.length;i++){
         })
 
     })
-    toolboxBoxColors[i].addEventListener("dbclick" , (e) => {
+    toolboxBoxColors[i].addEventListener("dblclick" , (e) => {
         let allTicketsCont = document.querySelectorAll('.ticket-cont');
-
+        console.log("si");
         for(let i = 0;i < allTicketsCont.length ; i++){
             allTicketsCont[i].remove();
         }
@@ -81,8 +90,8 @@ removeBtn.addEventListener("click",(e)=>{
 
 modalCont.addEventListener("keydown",(e)=>{
     let key = e.key;
-    if(key=="Shift"){
-        createTicket(modalPriorityColor,textAreaCont.value,shortid());
+    if(key=="Enter"){
+        createTicket(modalPriorityColor,textAreaCont.value);
         setModalDefault();
         addFlag=false;
     }
@@ -91,11 +100,12 @@ modalCont.addEventListener("keydown",(e)=>{
 
 function createTicket(ticketColor,ticketTask,ticketId){
     let id = ticketId || shortid();
+    console.log(id)
     let ticketCont = document.createElement('div');
     ticketCont.setAttribute("class","ticket-cont");
     ticketCont.innerHTML =`
     <div class="ticket-color ${ticketColor}"></div>
-    <div class="ticket-id">#${ticketId}</div>
+    <div class="ticket-id">#${id}</div>
     <div class="task-area">${ticketTask}.</div>
     <div class="ticket-lock">
         <i class="fa-solid fa-lock"></i>
@@ -103,25 +113,35 @@ function createTicket(ticketColor,ticketTask,ticketId){
     `;
     mainCont.appendChild(ticketCont);
 
-    if(!ticketId) ticketArr.push( { ticketColor,ticketTask,ticketId: id } );
-
-    handleRemoval(ticketCont);
-    handleLock(ticketCont);
-    handleColor(ticketCont);
-}
-function handleRemoval(ticket){
-    if(removeFlag){
-        ticket.remove();
+    if(!ticketId){
+        ticketArr.push( { ticketColor,ticketTask,ticketId: id } );
+        localStorage.setItem("task_tickets",JSON.stringify(ticketArr));
     }
+    handleRemoval(ticketCont,id);
+    handleLock(ticketCont,id);
+    handleColor(ticketCont,id);
+}
+function handleRemoval(ticket,id){
+
+    ticket.addEventListener("click", (e) =>{
+        
+    let idx = getTicketIdx(id);
+    if(!removeFlag) return;
+    ticketArr.splice(idx,1);
+    localStorage.setItem("task_tickets",JSON.stringify(ticketArr));
+    ticket.remove();
+    })
+    
 
 }
 
 
-function handleLock(ticket){
+function handleLock(ticket,id){
     let ticketLockElem = ticket.querySelector('.ticket-lock');
     let ticketLock = ticketLockElem.children[0];
     let ticketTaskArea = ticket.querySelector('.task-area');
     ticketLock.addEventListener("click",(e)=> {
+        let idx = getTicketIdx(id);
         if(ticketLock.classList.contains(lockClass)){
             ticketLock.classList.remove(lockClass);
             ticketLock.classList.add(unlockClass);
@@ -134,13 +154,17 @@ function handleLock(ticket){
 
         }
 
+        ticketArr[idx].ticket.ticketTask = ticketTaskArea.innerText;
+        localStorage.setItem("task_tickets",JSON.stringify(ticketArr));
+
     })
 }
 
 
-function handleColor(ticket){
+function handleColor(ticket,id){
     let ticketColor = ticket.querySelector(".ticket-color");
     ticketColor.addEventListener("click",(e)=> {
+        let idx = getTicketIdx(id);
 
    
     let currentTicketColor = ticketColor.classList[1];
@@ -154,8 +178,19 @@ function handleColor(ticket){
     let newTicketColorIndex = currTicketColorIndex%colors.length;
     let newTicketColor = colors[newTicketColorIndex];
     ticketColor.classList.remove(currentTicketColor);
-    ticketColor.classList.add(newTicketColor);
+    ticketColor.classList.add(newTicketColor);   
+
+    ticketArr[idx].ticketColor = newTicketColor;
+    localStorage.setItem("task_tickets",JSON.stringify(ticketArr));
+    
 })
+}
+
+function getTicketIdx(id){
+    let ticketIdx =ticketArr.findIndex((ticketObj) => {
+        return ticketObj.ticketId ===id;
+    })
+    return ticketIdx;
 }
 
 
